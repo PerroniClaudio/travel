@@ -1,4 +1,27 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Import indirizzi
+
+Per importare le righe presenti in [locations.md](locations.md) dentro Convex:
+
+```bash
+pnpm import:locations
+```
+
+Opzioni utili:
+
+```bash
+pnpm import:locations -- --dry-run
+pnpm import:locations -- --timeSlot cena --addedBy Giorgia
+pnpm import:locations -- --file locations.md --notes "Import iniziale"
+```
+
+Prerequisiti:
+
+- `NEXT_PUBLIC_CONVEX_URL` in `.env.local`
+- `GOOGLE_MAPS_API_KEY` oppure `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in `.env.local`
+
+Lo script legge una riga per indirizzo, usa il primo segmento come citta' per classificare `tokyo`, `kyoto`, `osaka` o `altro`, geocodifica il resto e salta i duplicati gia' presenti in Convex.
+
+## Sviluppo
 
 ## Getting Started
 

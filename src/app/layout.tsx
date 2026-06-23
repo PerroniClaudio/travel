@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Japan Travel Planner",
+  title: "Pookie Planner",
   description: "Mappe, luoghi e itinerari per Tokyo, Kyoto, Osaka e altro.",
 };
 

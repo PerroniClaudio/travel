@@ -87,7 +87,9 @@ export function TravelApp() {
     placeList.find((place) => place._id === selectedPlaceId) ?? null;
   const suggestedDays = suggestDays(placeList, city);
   const overlayCardClassName =
-    "rounded-4xl border border-white/70 bg-white/92 p-4 shadow-[0_20px_50px_rgba(15,23,42,0.15)] backdrop-blur-md";
+    "rounded-4xl border border-base-300/70 bg-base-100/90 p-4 text-base-content shadow-[0_20px_50px_color-mix(in_oklab,var(--color-neutral)_18%,transparent)] backdrop-blur-md";
+  const panelClassName =
+    "border border-base-300/70 bg-base-100/88 shadow-[0_16px_40px_color-mix(in_oklab,var(--color-neutral)_16%,transparent)] backdrop-blur";
 
   function openDirections(place: Place) {
     window.open(getDirectionsUrl(place), "_blank", "noopener,noreferrer");
@@ -201,16 +203,16 @@ export function TravelApp() {
           onSelectPlaceAction={setSelectedPlaceId}
           currentPosition={currentPosition}
         />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(247,254,231,0.55)_0%,rgba(255,255,255,0)_24%,rgba(255,255,255,0)_72%,rgba(255,247,237,0.35)_100%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,color-mix(in_oklab,var(--color-primary)_20%,transparent)_0%,transparent_24%,transparent_72%,color-mix(in_oklab,var(--color-secondary)_18%,transparent)_100%)]" />
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center px-3 pt-[max(env(safe-area-inset-top),0.75rem)] sm:px-6 sm:pt-5">
-        <div className="pointer-events-auto tabs tabs-boxed grid w-full max-w-3xl grid-cols-4 gap-2 rounded-[1.75rem] border border-white/70 bg-white/88 p-2 shadow-[0_16px_40px_rgba(15,23,42,0.14)] backdrop-blur">
+        <div className={`pointer-events-auto tabs tabs-boxed grid w-full max-w-3xl grid-cols-4 gap-2 rounded-[1.75rem] p-2 ${panelClassName}`}>
           {cityTabs.map((tab) => (
             <button
               key={tab}
               type="button"
-              className={`tab whitespace-nowrap rounded-2xl border-0 px-1 text-[11px] font-semibold sm:text-sm ${city === tab ? "tab-active bg-sky-500 text-white" : "bg-transparent text-slate-500"}`}
+              className={`tab whitespace-nowrap rounded-2xl border-0 px-1 text-[11px] font-semibold transition-colors sm:text-sm ${city === tab ? "tab-active bg-primary! text-primary-content!" : "bg-transparent text-base-content/60 hover:bg-base-200/80 hover:text-base-content"}`}
               onClick={() => handleCityChange(tab)}
             >
               {cityMeta[tab].label}
@@ -221,7 +223,7 @@ export function TravelApp() {
 
       {message ? (
         <div className="pointer-events-none absolute inset-x-0 top-24 z-30 flex justify-center px-3 sm:px-6">
-          <div className="alert pointer-events-auto w-full max-w-xl border border-amber-200 bg-amber-50/95 text-sm text-amber-800 shadow-sm backdrop-blur">
+          <div className="alert alert-warning pointer-events-auto w-full max-w-xl border border-warning/40 bg-warning/20 text-sm text-warning-content shadow-sm backdrop-blur">
             <span>{message}</span>
           </div>
         </div>
@@ -237,32 +239,34 @@ export function TravelApp() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-bold">{selectedPlace.name}</h2>
-                    <p className="mt-1 text-sm text-slate-600">
+                    <p className="mt-1 text-sm text-base-content/70">
                       {selectedPlace.notes || "Nessuna nota"}
                     </p>
                   </div>
-                  <span className="badge badge-outline badge-lg">
+                  <span className="badge badge-secondary badge-soft badge-lg border-0">
                     {timeSlotLabels[selectedPlace.timeSlot]}
                   </span>
                 </div>
                 <div className="mt-3 flex gap-2">
-                  <span className="badge badge-accent badge-soft">
+                  <span className="badge badge-accent badge-soft border-0">
                     {selectedPlace.addedBy}
                   </span>
-                  <span className="badge badge-neutral badge-soft">
+                  <span
+                    className={`badge badge-soft border-0 ${selectedPlace.visited ? "badge-success" : "badge-warning"}`}
+                  >
                     {selectedPlace.visited ? "Visitato" : "Da visitare"}
                   </span>
                 </div>
                 <button
                   type="button"
-                  className="btn btn-primary btn-block mt-4 rounded-2xl"
+                  className="btn btn-primary btn-block mt-4 rounded-2xl border-0"
                   onClick={() => openDirections(selectedPlace)}
                 >
                   Apri indicazioni
                 </button>
                 <button
                   type="button"
-                  className="btn btn-error btn-soft btn-block mt-2 rounded-2xl"
+                  className="btn btn-error btn-block mt-2 rounded-2xl border-0"
                   onClick={() => deletePlace(selectedPlace)}
                   disabled={deletingPlaceId === selectedPlace._id}
                 >
@@ -273,7 +277,7 @@ export function TravelApp() {
                 </button>
               </article>
             ) : (
-              <div className="pointer-events-none mb-2 w-full max-w-sm rounded-4xl border border-dashed border-white/70 bg-white/76 p-5 text-center text-sm text-slate-500 shadow-sm backdrop-blur-md">
+              <div className="pointer-events-none mb-2 w-full max-w-sm rounded-4xl border border-dashed border-base-300/70 bg-base-100/76 p-5 text-center text-sm text-base-content/60 shadow-sm backdrop-blur-md">
                 Tocca un pin per vedere dettagli.
               </div>
             )}
@@ -284,12 +288,12 @@ export function TravelApp() {
           <div className="mx-auto h-full w-full max-w-2xl overflow-y-auto pb-2">
             <div className="space-y-3">
             {loading ? (
-              <div className={`${overlayCardClassName} text-center text-sm text-slate-500`}>
+              <div className={`${overlayCardClassName} text-center text-sm text-base-content/60`}>
                 Caricamento luoghi...
               </div>
             ) : null}
             {!loading && placeList.length === 0 ? (
-              <div className="rounded-4xl border border-dashed border-white/70 bg-white/92 p-6 text-center text-sm text-slate-500 shadow-sm backdrop-blur-md">
+              <div className="rounded-4xl border border-dashed border-base-300/70 bg-base-100/92 p-6 text-center text-sm text-base-content/60 shadow-sm backdrop-blur-md">
                 Nessun posto salvato per {cityMeta[city].label}.
               </div>
             ) : null}
@@ -307,8 +311,8 @@ export function TravelApp() {
                       setScreen("mappa");
                     }}
                   >
-                    <h2 className="text-lg font-bold text-slate-900">{place.name}</h2>
-                    <p className="mt-1 line-clamp-2 text-sm text-slate-600">
+                    <h2 className="text-lg font-bold text-base-content">{place.name}</h2>
+                    <p className="mt-1 line-clamp-2 text-sm text-base-content/70">
                       {place.notes || "Nessuna nota"}
                     </p>
                   </button>
@@ -321,25 +325,27 @@ export function TravelApp() {
                   />
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="badge badge-secondary badge-soft">
+                  <span className="badge badge-secondary badge-soft border-0">
                     {timeSlotLabels[place.timeSlot]}
                   </span>
-                  <span className="badge badge-accent badge-soft">{place.addedBy}</span>
-                  <span className="badge badge-ghost">
+                  <span className="badge badge-accent badge-soft border-0">{place.addedBy}</span>
+                  <span
+                    className={`badge badge-soft border-0 ${place.visited ? "badge-success" : "badge-warning"}`}
+                  >
                     {place.visited ? "Visitato" : "Da visitare"}
                   </span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    className="btn btn-outline btn-sm rounded-xl"
+                    className="btn btn-secondary btn-soft btn-sm rounded-xl border-0"
                     onClick={() => openDirections(place)}
                   >
                     Indicazioni
                   </button>
                   <button
                     type="button"
-                    className="btn btn-error btn-soft btn-sm rounded-xl"
+                    className="btn btn-error btn-sm rounded-xl border-0"
                     onClick={() => deletePlace(place)}
                     disabled={deletingPlaceId === place._id}
                   >
@@ -457,7 +463,7 @@ export function TravelApp() {
                   required
                 />
               </div>
-              <p className="mt-2 px-1 text-sm text-slate-500">
+              <p className="mt-2 px-1 text-sm text-base-content/60">
                 Le coordinate vengono risolte automaticamente al salvataggio.
               </p>
             </div>
@@ -490,12 +496,12 @@ export function TravelApp() {
             <div className="space-y-3">
             <div className={overlayCardClassName}>
               <h2 className="text-lg font-bold">Suggerisci giornata</h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-base-content/70">
                 Gruppi basati su vicinanza e fascia oraria per {cityMeta[city].label}.
               </p>
             </div>
             {suggestedDays.length === 0 ? (
-              <div className="rounded-4xl border border-dashed border-white/70 bg-white/92 p-6 text-center text-sm text-slate-500 shadow-sm backdrop-blur-md">
+              <div className="rounded-4xl border border-dashed border-base-300/70 bg-base-100/92 p-6 text-center text-sm text-base-content/60 shadow-sm backdrop-blur-md">
                 Nessun gruppo da proporre. Aggiungi posti non visitati.
               </div>
             ) : null}
@@ -506,12 +512,12 @@ export function TravelApp() {
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sky-600">
+                    <p className="text-primary text-xs font-semibold uppercase tracking-[0.25em]">
                       Giorno {index + 1}
                     </p>
                     <h3 className="text-lg font-bold">{day.areaLabel}</h3>
                   </div>
-                  <span className="badge badge-secondary badge-soft">
+                  <span className="badge badge-secondary badge-soft border-0">
                     {day.timeLabel}
                   </span>
                 </div>
@@ -520,7 +526,7 @@ export function TravelApp() {
                     <button
                       key={place._id}
                       type="button"
-                      className="flex w-full items-center justify-between rounded-2xl bg-base-100 px-4 py-3 text-left"
+                      className="flex w-full items-center justify-between rounded-2xl border border-base-300/50 bg-base-200/70 px-4 py-3 text-left transition-colors hover:bg-base-200"
                       onClick={() => {
                         setSelectedPlaceId(place._id);
                         setScreen("mappa");
@@ -528,11 +534,11 @@ export function TravelApp() {
                     >
                       <span>
                         <strong className="block">{place.name}</strong>
-                        <span className="text-sm text-slate-500">
+                        <span className="text-sm text-base-content/60">
                           {timeSlotLabels[place.timeSlot]}
                         </span>
                       </span>
-                      <span className="badge badge-accent badge-soft">
+                      <span className="badge badge-accent badge-soft border-0">
                         {place.addedBy}
                       </span>
                     </button>
@@ -546,12 +552,12 @@ export function TravelApp() {
       </section>
 
       <nav className="absolute inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 sm:px-6 sm:pb-5">
-        <div className="flex w-full max-w-3xl gap-2 rounded-4xl border border-white/70 bg-white/88 p-2 shadow-[0_-10px_40px_rgba(15,23,42,0.12)] backdrop-blur">
+        <div className={`flex w-full max-w-3xl gap-2 rounded-4xl p-2 shadow-[0_-10px_40px_color-mix(in_oklab,var(--color-neutral)_14%,transparent)] ${panelClassName}`}>
         {screenOptions.map((option) => (
           <button
             key={option.id}
             type="button"
-            className={`btn h-auto min-h-0 flex-1 rounded-2xl px-2 py-3 ${screen === option.id ? "btn-primary" : "btn-ghost border-0 bg-transparent text-slate-600"}`}
+            className={`btn h-auto min-h-0 flex-1 rounded-2xl px-2 py-3 border-0 ${screen === option.id ? "btn-primary text-primary-content" : "btn-ghost bg-transparent text-base-content/65 hover:bg-base-200/80 hover:text-base-content"}`}
             onClick={() => setScreen(option.id)}
           >
             <span className="flex flex-col items-center gap-1 text-[11px] font-semibold sm:text-xs">
