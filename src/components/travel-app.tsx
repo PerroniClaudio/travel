@@ -279,6 +279,7 @@ export function TravelApp() {
     }
 
     setEditingPlaceId(null);
+    setEditDraft(defaultDraft(city));
   }
 
   async function geocodeDraft(nextDraft: DraftPlace) {
@@ -389,7 +390,7 @@ export function TravelApp() {
   async function updatePlace(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!editingPlaceId) {
+    if (!editingPlaceId || !editingPlace) {
       return;
     }
 
@@ -397,7 +398,12 @@ export function TravelApp() {
     setMessage(null);
 
     try {
-      const coordinates = await geocodeDraft(editDraft);
+      const locationChanged =
+        editDraft.addressQuery.trim() !== editingPlace.name.trim() ||
+        editDraft.cityTab !== editingPlace.cityTab;
+      const coordinates = locationChanged
+        ? await geocodeDraft(editDraft)
+        : { lat: editingPlace.lat, lng: editingPlace.lng };
 
       if (!coordinates) {
         return;
@@ -421,7 +427,8 @@ export function TravelApp() {
 
       setSelectedPlaceId(updated._id);
       setCity(updated.cityTab);
-      closeEditModal();
+      setEditingPlaceId(null);
+      setEditDraft(defaultDraft(updated.cityTab));
     } catch {
       setMessage("Aggiornamento fallito");
     } finally {
