@@ -14,10 +14,25 @@ export const listByCity = query({
     ),
   },
   handler: async (ctx, { cityTab }) => {
-    const places = await ctx.db
-      .query("places")
-      .withIndex("by_city_tab", (q) => q.eq("cityTab", cityTab))
-      .collect();
+    let places;
+
+    try {
+      places = await ctx.db
+        .query("places")
+        .withIndex("by_city_tab", (q) => q.eq("cityTab", cityTab))
+        .collect();
+    } catch (error) {
+      if (
+        !(error instanceof Error) ||
+        !error.message.includes("by_city_tab")
+      ) {
+        throw error;
+      }
+
+      places = (await ctx.db.query("places").collect()).filter(
+        (place) => place.cityTab === cityTab,
+      );
+    }
 
     return places.sort((a, b) => b._creationTime - a._creationTime);
   },
