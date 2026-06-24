@@ -82,6 +82,36 @@ export const toggleVisited = mutation({
   },
 });
 
+export const update = mutation({
+  args: {
+    id: v.id("places"),
+    name: v.string(),
+    cityTab: v.union(
+      v.literal("tokyo"),
+      v.literal("kyoto"),
+      v.literal("osaka"),
+      v.literal("altro"),
+    ),
+    lat: v.number(),
+    lng: v.number(),
+    notes: v.string(),
+    timeSlot: v.union(
+      v.literal("mattina"),
+      v.literal("primo_pomeriggio"),
+      v.literal("pomeriggio"),
+      v.literal("aperitivo"),
+      v.literal("cena"),
+      v.literal("sera"),
+      v.literal("notte"),
+    ),
+    addedBy: v.union(v.literal("Claudio"), v.literal("Giorgia")),
+  },
+  handler: async (ctx, { id, ...patch }) => {
+    await ctx.db.patch(id, patch);
+    return await ctx.db.get(id);
+  },
+});
+
 export const remove = mutation({
   args: {
     id: v.id("places"),

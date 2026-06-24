@@ -35,6 +35,15 @@ type DraftPlace = {
   addressQuery: string;
 };
 
+type PlaceFormProps = {
+  draft: DraftPlace;
+  onDraftChangeAction: React.Dispatch<React.SetStateAction<DraftPlace>>;
+  onSubmitAction: (event: React.FormEvent<HTMLFormElement>) => Promise<void>;
+  saving: boolean;
+  submitLabel: string;
+  className?: string;
+};
+
 const defaultDraft = (cityTab: CityTab): DraftPlace => ({
   name: "",
   cityTab,
@@ -51,14 +60,161 @@ const screenOptions: Array<{ id: Screen; label: string; icon: LucideIcon }> = [
   { id: "itinerario", label: "Itinerario", icon: Route },
 ];
 
+function PlaceForm({
+  draft,
+  onDraftChangeAction,
+  onSubmitAction,
+  saving,
+  submitLabel,
+  className,
+}: PlaceFormProps) {
+  return (
+    <form className={className} onSubmit={onSubmitAction}>
+      <div>
+        <label className="label px-1">
+          <span className="label-text font-semibold">Nome del luogo</span>
+        </label>
+        <input
+          className="input input-bordered w-full rounded-2xl"
+          value={draft.name}
+          onChange={(event) =>
+            onDraftChangeAction((current) => ({
+              ...current,
+              name: event.target.value,
+            }))
+          }
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="label px-1">
+            <span className="label-text font-semibold">Città</span>
+          </label>
+          <select
+            className="select select-bordered w-full rounded-2xl"
+            value={draft.cityTab}
+            onChange={(event) =>
+              onDraftChangeAction((current) => ({
+                ...current,
+                cityTab: event.target.value as CityTab,
+              }))
+            }
+          >
+            {cityTabs.map((tab) => (
+              <option key={tab} value={tab}>
+                {cityMeta[tab].label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="label px-1">
+            <span className="label-text font-semibold">Chi lo ha inserito</span>
+          </label>
+          <select
+            className="select select-bordered w-full rounded-2xl"
+            value={draft.addedBy}
+            onChange={(event) =>
+              onDraftChangeAction((current) => ({
+                ...current,
+                addedBy: event.target.value as AddedBy,
+              }))
+            }
+          >
+            {addedByOptions.map((person) => (
+              <option key={person} value={person}>
+                {person}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="label px-1">
+          <span className="label-text font-semibold">Orario preferibile</span>
+        </label>
+        <select
+          className="select select-bordered w-full rounded-2xl"
+          value={draft.timeSlot}
+          onChange={(event) =>
+            onDraftChangeAction((current) => ({
+              ...current,
+              timeSlot: event.target.value as TimeSlot,
+            }))
+          }
+        >
+          {timeSlots.map((slot) => (
+            <option key={slot} value={slot}>
+              {timeSlotLabels[slot]}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="label px-1">
+          <span className="label-text font-semibold">Ricerca luogo / indirizzo</span>
+        </label>
+        <div className="flex gap-2">
+          <input
+            className="input input-bordered flex-1 rounded-2xl"
+            placeholder="es. Fushimi Inari Shrine Kyoto"
+            value={draft.addressQuery}
+            onChange={(event) =>
+              onDraftChangeAction((current) => ({
+                ...current,
+                addressQuery: event.target.value,
+              }))
+            }
+            required
+          />
+        </div>
+        <p className="mt-2 px-1 text-sm text-base-content/60">
+          Le coordinate vengono risolte automaticamente al salvataggio.
+        </p>
+      </div>
+
+      <div>
+        <label className="label px-1">
+          <span className="label-text font-semibold">Descrizione / note</span>
+        </label>
+        <textarea
+          className="textarea textarea-bordered min-h-32 w-full rounded-3xl"
+          value={draft.notes}
+          onChange={(event) =>
+            onDraftChangeAction((current) => ({
+              ...current,
+              notes: event.target.value,
+            }))
+          }
+        />
+      </div>
+
+      <button
+        type="submit"
+        className="btn btn-primary btn-block rounded-2xl"
+        disabled={saving}
+      >
+        {saving ? "Salvataggio..." : submitLabel}
+      </button>
+    </form>
+  );
+}
+
 export function TravelApp() {
   const [screen, setScreen] = useState<Screen>("mappa");
   const [city, setCity] = useState<CityTab>("tokyo");
   const [selectedPlaceId, setSelectedPlaceId] = useState<PlaceId | null>(null);
   const [draft, setDraft] = useState<DraftPlace>(defaultDraft("tokyo"));
+  const [editDraft, setEditDraft] = useState<DraftPlace>(defaultDraft("tokyo"));
+  const [editingPlaceId, setEditingPlaceId] = useState<PlaceId | null>(null);
   const [currentPosition, setCurrentPosition] =
     useState<GeolocationCoordinates | null>(null);
   const [saving, setSaving] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [deletingPlaceId, setDeletingPlaceId] = useState<PlaceId | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -66,6 +222,7 @@ export function TravelApp() {
     | Place[]
     | undefined;
   const createPlaceMutation = useMutation(api.places.create);
+  const updatePlaceMutation = useMutation(api.places.update);
   const deletePlaceMutation = useMutation(api.places.remove);
   const toggleVisitedMutation = useMutation(api.places.toggleVisited);
 
@@ -85,6 +242,8 @@ export function TravelApp() {
   const placeList = places ?? [];
   const selectedPlace =
     placeList.find((place) => place._id === selectedPlaceId) ?? null;
+  const editingPlace =
+    placeList.find((place) => place._id === editingPlaceId) ?? null;
   const suggestedDays = suggestDays(placeList, city);
   const overlayCardClassName =
     "rounded-4xl border border-base-300/70 bg-base-100/90 p-4 text-base-content shadow-[0_20px_50px_color-mix(in_oklab,var(--color-neutral)_18%,transparent)] backdrop-blur-md";
@@ -99,6 +258,61 @@ export function TravelApp() {
     setCity(nextCity);
     setDraft(defaultDraft(nextCity));
     setSelectedPlaceId(null);
+  }
+
+  function openEditModal(place: Place) {
+    setEditingPlaceId(place._id);
+    setEditDraft({
+      name: place.name,
+      cityTab: place.cityTab,
+      notes: place.notes,
+      timeSlot: place.timeSlot,
+      addedBy: place.addedBy,
+      addressQuery: place.name,
+    });
+    setMessage(null);
+  }
+
+  function closeEditModal() {
+    if (updating) {
+      return;
+    }
+
+    setEditingPlaceId(null);
+  }
+
+  async function geocodeDraft(nextDraft: DraftPlace) {
+    if (!nextDraft.addressQuery.trim()) {
+      setMessage("Inserisci indirizzo o nome luogo");
+      return null;
+    }
+
+    const geocodeResponse = await fetch("/api/geocode", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        address: nextDraft.addressQuery,
+        cityTab: nextDraft.cityTab,
+      }),
+    });
+
+    const geocodePayload = (await geocodeResponse.json()) as {
+      error?: string;
+      lat?: number;
+      lng?: number;
+    };
+
+    if (!geocodeResponse.ok) {
+      setMessage(geocodePayload.error ?? "Geocoding failed");
+      return null;
+    }
+
+    return {
+      lat: geocodePayload.lat ?? Number.NaN,
+      lng: geocodePayload.lng ?? Number.NaN,
+    };
   }
 
   async function toggleVisited(place: Place) {
@@ -140,30 +354,9 @@ export function TravelApp() {
     setMessage(null);
 
     try {
-      if (!draft.addressQuery.trim()) {
-        setMessage("Inserisci indirizzo o nome luogo");
-        return;
-      }
+      const coordinates = await geocodeDraft(draft);
 
-      const geocodeResponse = await fetch("/api/geocode", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          address: draft.addressQuery,
-          cityTab: draft.cityTab,
-        }),
-      });
-
-      const geocodePayload = (await geocodeResponse.json()) as {
-        error?: string;
-        lat?: number;
-        lng?: number;
-      };
-
-      if (!geocodeResponse.ok) {
-        setMessage(geocodePayload.error ?? "Geocoding failed");
+      if (!coordinates) {
         return;
       }
 
@@ -173,8 +366,8 @@ export function TravelApp() {
         notes: draft.notes,
         timeSlot: draft.timeSlot,
         addedBy: draft.addedBy,
-        lat: geocodePayload.lat ?? Number.NaN,
-        lng: geocodePayload.lng ?? Number.NaN,
+        lat: coordinates.lat,
+        lng: coordinates.lng,
       });
 
       if (!created) {
@@ -190,6 +383,49 @@ export function TravelApp() {
       setMessage("Salvataggio fallito");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function updatePlace(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editingPlaceId) {
+      return;
+    }
+
+    setUpdating(true);
+    setMessage(null);
+
+    try {
+      const coordinates = await geocodeDraft(editDraft);
+
+      if (!coordinates) {
+        return;
+      }
+
+      const updated = await updatePlaceMutation({
+        id: editingPlaceId,
+        name: editDraft.name,
+        cityTab: editDraft.cityTab,
+        notes: editDraft.notes,
+        timeSlot: editDraft.timeSlot,
+        addedBy: editDraft.addedBy,
+        lat: coordinates.lat,
+        lng: coordinates.lng,
+      });
+
+      if (!updated) {
+        setMessage("Aggiornamento fallito");
+        return;
+      }
+
+      setSelectedPlaceId(updated._id);
+      setCity(updated.cityTab);
+      closeEditModal();
+    } catch {
+      setMessage("Aggiornamento fallito");
+    } finally {
+      setUpdating(false);
     }
   }
 
@@ -338,6 +574,13 @@ export function TravelApp() {
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button
                     type="button"
+                    className="btn btn-primary btn-soft btn-sm rounded-xl border-0"
+                    onClick={() => openEditModal(place)}
+                  >
+                    Modifica
+                  </button>
+                  <button
+                    type="button"
                     className="btn btn-secondary btn-soft btn-sm rounded-xl border-0"
                     onClick={() => openDirections(place)}
                   >
@@ -360,135 +603,14 @@ export function TravelApp() {
         ) : null}
 
         {screen === "nuovo" ? (
-          <form
+          <PlaceForm
             className={`${overlayCardClassName} mx-auto h-full w-full max-w-2xl space-y-4 overflow-y-auto`}
-            onSubmit={createPlace}
-          >
-            <div>
-              <label className="label px-1">
-                <span className="label-text font-semibold">Nome del luogo</span>
-              </label>
-              <input
-                className="input input-bordered w-full rounded-2xl"
-                value={draft.name}
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, name: event.target.value }))
-                }
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label px-1">
-                  <span className="label-text font-semibold">Città</span>
-                </label>
-                <select
-                  className="select select-bordered w-full rounded-2xl"
-                  value={draft.cityTab}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      cityTab: event.target.value as CityTab,
-                    }))
-                  }
-                >
-                  {cityTabs.map((tab) => (
-                    <option key={tab} value={tab}>
-                      {cityMeta[tab].label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="label px-1">
-                  <span className="label-text font-semibold">Chi lo ha inserito</span>
-                </label>
-                <select
-                  className="select select-bordered w-full rounded-2xl"
-                  value={draft.addedBy}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      addedBy: event.target.value as AddedBy,
-                    }))
-                  }
-                >
-                  {addedByOptions.map((person) => (
-                    <option key={person} value={person}>
-                      {person}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="label px-1">
-                <span className="label-text font-semibold">Orario preferibile</span>
-              </label>
-              <select
-                className="select select-bordered w-full rounded-2xl"
-                value={draft.timeSlot}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    timeSlot: event.target.value as TimeSlot,
-                  }))
-                }
-              >
-                {timeSlots.map((slot) => (
-                  <option key={slot} value={slot}>
-                    {timeSlotLabels[slot]}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="label px-1">
-                <span className="label-text font-semibold">Ricerca luogo / indirizzo</span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  className="input input-bordered flex-1 rounded-2xl"
-                  placeholder="es. Fushimi Inari Shrine Kyoto"
-                  value={draft.addressQuery}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      addressQuery: event.target.value,
-                    }))
-                  }
-                  required
-                />
-              </div>
-              <p className="mt-2 px-1 text-sm text-base-content/60">
-                Le coordinate vengono risolte automaticamente al salvataggio.
-              </p>
-            </div>
-
-            <div>
-              <label className="label px-1">
-                <span className="label-text font-semibold">Descrizione / note</span>
-              </label>
-              <textarea
-                className="textarea textarea-bordered min-h-32 w-full rounded-3xl"
-                value={draft.notes}
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, notes: event.target.value }))
-                }
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="btn btn-primary btn-block rounded-2xl"
-              disabled={saving}
-            >
-              {saving ? "Salvataggio..." : "Salva"}
-            </button>
-          </form>
+            draft={draft}
+            onDraftChangeAction={setDraft}
+            onSubmitAction={createPlace}
+            saving={saving}
+            submitLabel="Salva"
+          />
         ) : null}
 
         {screen === "itinerario" ? (
@@ -550,6 +672,38 @@ export function TravelApp() {
           </div>
         ) : null}
       </section>
+
+      {editingPlaceId && editingPlace ? (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-neutral/45 px-3 py-6 backdrop-blur-sm sm:px-6">
+          <div className={`${overlayCardClassName} w-full max-w-2xl space-y-4`}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold">Modifica luogo</h2>
+                <p className="mt-1 text-sm text-base-content/65">
+                  Aggiorna i dettagli di {editingPlace.name}.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm rounded-xl"
+                onClick={closeEditModal}
+                disabled={updating}
+              >
+                Chiudi
+              </button>
+            </div>
+
+            <PlaceForm
+              className="space-y-4"
+              draft={editDraft}
+              onDraftChangeAction={setEditDraft}
+              onSubmitAction={updatePlace}
+              saving={updating}
+              submitLabel="Salva modifiche"
+            />
+          </div>
+        </div>
+      ) : null}
 
       <nav className="absolute inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 sm:px-6 sm:pb-5">
         <div className={`flex w-full max-w-3xl gap-2 rounded-4xl p-2 shadow-[0_-10px_40px_color-mix(in_oklab,var(--color-neutral)_14%,transparent)] ${panelClassName}`}>
